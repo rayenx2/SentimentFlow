@@ -1,0 +1,201 @@
+#version: '3.8'
+
+services:
+  # API FastAPI
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile
+    container_name: sentimentflow-api
+    ports:
+      - "8080:8080"  # API
+      - "8000:8000"  # Metrics Prometheus
+    volumes:
+      - model-cache:/app/models/cache
+      - dataset-volume:/app/data/datasets/cached:rw
+      - ./results:/app/results
+    environment:
+      - METRICS_PORT=8000
+    networks:
+      - sentiment-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./frontend-react
+      dockerfile: Dockerfile
+    container_name: sentimentflow-frontend
+    ports:
+      - "8095:80"
+    networks:
+      - sentiment-network
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sentimentflow-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - sentiment-network
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sentimentflow-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+      - ./infrastructure/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - sentiment-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # Airflow
+  airflow-init:
+    build:
+      context: .
+      dockerfile: infrastructure/airflow/Dockerfile 
+    image: apache/airflow:2.6.3
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./infrastructure/airflow/dags:/opt/airflow/dags
+      - ./infrastructure/airflow/logs:/opt/airflow/logs
+      - ./infrastructure/airflow/plugins:/opt/airflow/plugins
+    entrypoint: /bin/bash
+    command: -c "airflow db init"
+    networks:
+      - sentiment-network
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: infrastructure/airflow/Dockerfile
+    container_name: sentimentflow-airflow-web
+    image: apache/airflow:2.6.3
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+    ports:
+      - "8088:8080"
+    volumes:
+      - ./infrastructure/airflow/dags:/opt/airflow/dags
+      - ./infrastructure/airflow/logs:/opt/airflow/logs
+      - ./infrastructure/airflow/plugins:/opt/airflow/plugins
+    depends_on:
+      - postgres
+    networks:
+      - sentiment-network
+    command: webserver
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: infrastructure/airflow/Dockerfile
+    container_name: sentimentflow-airflow-scheduler
+    image: apache/airflow:2.6.3
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./infrastructure/airflow/dags:/opt/airflow/dags
+      - ./infrastructure/airflow/logs:/opt/airflow/logs
+      - ./infrastructure/airflow/plugins:/opt/airflow/plugins
+    depends_on:
+      - postgres
+    networks:
+      - sentiment-network
+    command: scheduler
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    networks:
+      - sentiment-network
+    restart: always
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.14.0
+    container_name: sentimentflow-mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/mlruns --default-artifact-root /mlflow/artifacts
+    networks:
+      - sentiment-network
+    restart: unless-stopped
+
+networks:
+  sentiment-network:
+    driver: bridge
+
+volumes:
+  model-cache:
+  dataset-volume:
+  prometheus-data:
+  grafana-data:
+  postgres-db-volume:
+  mlflow-data:
