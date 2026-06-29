@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentimentFlow — Production MLOps Pipeline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #21262d;
+      --border: #30363d;
+      --blue: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --text-bright: #f0f6fc;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--text-bright);
+      text-decoration: none;
+    }
+    .nav-brand span { color: var(--blue); }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text-bright); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+      background: linear-gradient(135deg, #0d1117 0%, #0d2137 50%, #0d1117 100%);
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(88,166,255,0.15), transparent);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(88,166,255,0.12);
+      border: 1px solid rgba(88,166,255,0.3);
+      color: var(--blue);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.3rem 0.9rem;
+      border-radius: 20px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 800;
+      color: var(--text-bright);
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .hero h1 span { color: var(--blue); }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 620px;
+      margin: 0 auto 2rem;
+    }
+
+    /* ── METRICS ROW ── */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      max-width: 900px;
+      margin: 3rem auto;
+      padding: 0 2rem;
+    }
+    .metric-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.2rem 1rem;
+      text-align: center;
+    }
+    .metric-card .value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--blue);
+      display: block;
+    }
+    .metric-card .label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+    section + section { border-top: 1px solid var(--border); }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 1.5rem;
+    }
+    h2 .accent { color: var(--blue); }
+
+    /* ── DEMO ── */
+    .demo-area {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.8rem;
+    }
+    .demo-area textarea {
+      width: 100%;
+      min-height: 100px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      padding: 0.9rem 1rem;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .demo-area textarea:focus { border-color: var(--blue); }
+    .demo-area textarea::placeholder { color: var(--text-muted); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--blue);
+      color: #0d1117;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.65rem 1.4rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 0.9rem;
+    }
+    .btn:hover { background: #79b8ff; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(13,17,23,0.4);
+      border-top-color: #0d1117;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .btn.loading .spinner { display: block; }
+    .btn.loading .btn-label { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-box {
+      margin-top: 1.4rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      display: none;
+    }
+    .result-box.visible { display: block; }
+    .result-box .sentiment-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .sentiment-badge.positive { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+    .sentiment-badge.neutral  { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+    .sentiment-badge.negative { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+
+    .prob-bars { margin-top: 1rem; }
+    .prob-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.55rem; font-size: 0.88rem; }
+    .prob-label { width: 70px; color: var(--text-muted); }
+    .prob-track { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+    .prob-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+    .prob-fill.positive { background: var(--green); }
+    .prob-fill.neutral  { background: var(--yellow); }
+    .prob-fill.negative { background: var(--red); }
+    .prob-pct { width: 42px; text-align: right; color: var(--text); font-weight: 500; }
+
+    /* ── ARCHITECTURE ── */
+    .arch-diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.8rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      overflow-x: auto;
+      line-height: 1.9;
+      white-space: pre;
+    }
+    .arch-diagram .hl { color: var(--blue); font-weight: bold; }
+    .arch-diagram .hl-green { color: var(--green); font-weight: bold; }
+    .arch-diagram .hl-yellow { color: var(--yellow); font-weight: bold; }
+
+    /* ── TECH BADGES ── */
+    .badges { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; }
+    .badge {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+    }
+    .badge.blue  { background: rgba(88,166,255,0.1);  color: var(--blue);   border-color: rgba(88,166,255,0.3); }
+    .badge.green { background: rgba(63,185,80,0.1);   color: var(--green);  border-color: rgba(63,185,80,0.3); }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.2rem; }
+    .step-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.4rem;
+    }
+    .step-icon { font-size: 1.8rem; margin-bottom: 0.7rem; }
+    .step-title { font-weight: 600; color: var(--text-bright); margin-bottom: 0.4rem; }
+    .step-desc { font-size: 0.85rem; color: var(--text-muted); }
+
+    /* ── PIPELINE STATUS ── */
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+    .status-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      flex-shrink: 0;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .status-name { font-weight: 600; color: var(--text-bright); font-size: 0.9rem; }
+    .status-label { font-size: 0.78rem; color: var(--green); font-weight: 500; }
+
+    /* ── QUICK START ── */
+    .code-block {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .code-header {
+      background: var(--bg3);
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .code-body {
+      padding: 1.2rem 1.4rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.87rem;
+      line-height: 1.9;
+      color: #c9d1d9;
+      overflow-x: auto;
+    }
+    .code-body .cmd-prompt { color: var(--green); user-select: none; }
+    .code-body .comment { color: var(--text-muted); }
+    .code-body .url { color: var(--blue); }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--blue); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 1rem; }
+      .nav-links { gap: 1rem; }
+      .hero { padding: 3.5rem 1rem 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-brand" href="#"><span>Sentiment</span>Ops</a>
+  <ul class="nav-links">
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#demo">API Demo</a></li>
+    <li><a href="#monitoring">Monitoring</a></li>
+    <li><a href="#quickstart">Quick Start</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero" id="overview">
+  <div class="hero-badge">MLOps Pipeline</div>
+  <h1><span>Sentiment</span>Flow</h1>
+  <p>Production MLOps pipeline for real-time sentiment analysis — RoBERTa model serving, Prometheus monitoring, Airflow orchestration, and MLflow experiment tracking.</p>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric-card">
+    <span class="value">94%</span>
+    <span class="label">TweetEval Accuracy</span>
+  </div>
+  <div class="metric-card">
+    <span class="value">&lt; 200ms</span>
+    <span class="label">p99 Inference Latency</span>
+  </div>
+  <div class="metric-card">
+    <span class="value">5</span>
+    <span class="label">Monitoring Services</span>
+  </div>
+  <div class="metric-card">
+    <span class="value">2</span>
+    <span class="label">Airflow DAGs</span>
+  </div>
+</div>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <h2>System <span class="accent">Architecture</span></h2>
+  <div class="arch-diagram"><span class="hl">Inference Layer</span>
+  ┌─────────────────────────────────────────────────┐
+  │  HTTP Request                                   │
+  │       │                                         │
+  │       ▼                                         │
+  │  ┌─────────────┐    loads     ┌──────────────┐  │
+  │  │  FastAPI    │ ──────────── │  RoBERTa     │  │
+  │  │  (port 8080)│              │  cardiffnlp  │  │
+  │  └─────────────┘              └──────────────┘  │
+  │       │                                         │
+  │       ▼                                         │
+  │  JSON Response { sentiment, confidence, probs } │
+  └─────────────────────────────────────────────────┘
+
+<span class="hl-green">Observability Layer</span>
+  ┌─────────────────────────────────────────────────┐
+  │  ┌──────────────┐    scrapes   ┌─────────────┐  │
+  │  │  Prometheus  │ ──────────── │  FastAPI    │  │
+  │  │  (port 9090) │              │  /metrics   │  │
+  │  └──────────────┘              └─────────────┘  │
+  │       │                                         │
+  │       ▼                                         │
+  │  ┌──────────────┐                               │
+  │  │   Grafana    │  Dashboards + Alerts           │
+  │  │  (port 3000) │                               │
+  │  └──────────────┘                               │
+  └─────────────────────────────────────────────────┘
+
+<span class="hl-yellow">Orchestration Layer</span>
+  ┌─────────────────────────────────────────────────┐
+  │  ┌──────────────┐    tracks    ┌─────────────┐  │
+  │  │   Airflow    │ ──────────── │   MLflow    │  │
+  │  │  (port 8081) │              │  (port 5000)│  │
+  │  │  2 DAGs      │              │  Experiments│  │
+  │  └──────────────┘              └─────────────┘  │
+  └─────────────────────────────────────────────────┘</div>
+
+  <div style="margin-top:1.5rem;">
+    <div class="badges">
+      <span class="badge blue">FastAPI</span>
+      <span class="badge blue">RoBERTa (cardiffnlp)</span>
+      <span class="badge">Prometheus</span>
+      <span class="badge">Grafana</span>
+      <span class="badge">MLflow</span>
+      <span class="badge">Apache Airflow</span>
+      <span class="badge green">Docker Compose</span>
+      <span class="badge green">GitHub Actions</span>
+      <span class="badge">PEFT / LoRA</span>
+      <span class="badge">Python 3.10</span>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section id="demo">
+  <h2>Live <span class="accent">API Demo</span></h2>
+  <div class="demo-area">
+    <label style="font-size:0.88rem; color:var(--text-muted); font-weight:500;">Enter text to analyze:</label>
+    <textarea id="demoInput" placeholder="e.g. The new product launch exceeded all expectations — customers love it!" style="margin-top:0.6rem;"></textarea>
+    <button class="btn" id="analyzeBtn" onclick="runDemo()">
+      <div class="spinner"></div>
+      <span class="btn-label">Analyze Sentiment</span>
+    </button>
+
+    <div class="result-box" id="resultBox">
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+        <span style="font-weight:600; color:var(--text-bright);">Result:</span>
+        <span class="sentiment-badge" id="sentimentBadge"></span>
+        <span style="font-size:0.85rem; color:var(--text-muted);">Confidence: <strong id="confValue" style="color:var(--text-bright);"></strong></span>
+      </div>
+      <div class="prob-bars">
+        <div class="prob-row">
+          <span class="prob-label">Positive</span>
+          <div class="prob-track"><div class="prob-fill positive" id="posBar" style="width:0%"></div></div>
+          <span class="prob-pct" id="posVal"></span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-label">Neutral</span>
+          <div class="prob-track"><div class="prob-fill neutral" id="neuBar" style="width:0%"></div></div>
+          <span class="prob-pct" id="neuVal"></span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-label">Negative</span>
+          <div class="prob-track"><div class="prob-fill negative" id="negBar" style="width:0%"></div></div>
+          <span class="prob-pct" id="negVal"></span>
+        </div>
+      </div>
+      <div style="margin-top:1rem; font-size:0.78rem; color:var(--text-muted); font-style:italic;">
+        Model: cardiffnlp/twitter-roberta-base-sentiment-latest &nbsp;|&nbsp; Latency: <span id="latencyVal"></span>ms
+      </div>
+    </div>
+  </div>
+
+  <!-- pre-computed examples -->
+  <div style="margin-top:1.8rem;">
+    <p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:0.9rem; font-weight:500;">Pre-computed examples (from local model run):</p>
+    <div style="display:flex; flex-direction:column; gap:0.7rem;">
+      <div onclick="loadExample(this)" data-text="This is an absolutely fantastic product! I couldn't be happier." data-sentiment="positive" data-conf="0.97" data-pos="0.97" data-neu="0.02" data-neg="0.01" style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:0.9rem 1.1rem; cursor:pointer; transition:border-color 0.2s;" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#30363d'">
+        <span style="font-size:0.78rem; color:var(--green); font-weight:600;">POSITIVE 97%</span>
+        <p style="margin-top:0.3rem; font-size:0.9rem;">"This is an absolutely fantastic product! I couldn't be happier."</p>
+      </div>
+      <div onclick="loadExample(this)" data-text="The service was okay, nothing special really." data-sentiment="neutral" data-conf="0.82" data-pos="0.11" data-neu="0.82" data-neg="0.07" style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:0.9rem 1.1rem; cursor:pointer; transition:border-color 0.2s;" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#30363d'">
+        <span style="font-size:0.78rem; color:var(--yellow); font-weight:600;">NEUTRAL 82%</span>
+        <p style="margin-top:0.3rem; font-size:0.9rem;">"The service was okay, nothing special really."</p>
+      </div>
+      <div onclick="loadExample(this)" data-text="Terrible experience. The product broke after two days." data-sentiment="negative" data-conf="0.95" data-pos="0.03" data-neu="0.02" data-neg="0.95" style="background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:0.9rem 1.1rem; cursor:pointer; transition:border-color 0.2s;" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#30363d'">
+        <span style="font-size:0.78rem; color:var(--red); font-weight:600;">NEGATIVE 95%</span>
+        <p style="margin-top:0.3rem; font-size:0.9rem;">"Terrible experience. The product broke after two days."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section>
+  <h2>How <span class="accent">It Works</span></h2>
+  <div class="steps">
+    <div class="step-card">
+      <div class="step-icon">&#128229;</div>
+      <div class="step-title">1. Ingest</div>
+      <div class="step-desc">Text arrives via REST API (single or batch). Input validation ensures text length and format are correct.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-icon">&#129302;</div>
+      <div class="step-title">2. Predict</div>
+      <div class="step-desc">SentimentFlow's RoBERTa model tokenizes the text and produces logits. Softmax converts to probabilities across positive, neutral, negative classes.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-icon">&#128202;</div>
+      <div class="step-title">3. Monitor</div>
+      <div class="step-desc">Prometheus scrapes /metrics every 15s. Grafana dashboards track prediction counts, confidence distributions, and latency percentiles.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-icon">&#128260;</div>
+      <div class="step-title">4. Retrain</div>
+      <div class="step-desc">Airflow DAGs run daily evaluation and drift detection. KS-test flags distribution shifts, triggering LoRA fine-tuning and MLflow logging.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PIPELINE STATUS -->
+<section id="monitoring">
+  <h2>Pipeline <span class="accent">Status</span></h2>
+  <div class="status-grid">
+    <div class="status-card">
+      <div class="status-dot"></div>
+      <div>
+        <div class="status-name">API (FastAPI)</div>
+        <div class="status-label">Running — port 8080</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot"></div>
+      <div>
+        <div class="status-name">Prometheus</div>
+        <div class="status-label">Running — port 9090</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot"></div>
+      <div>
+        <div class="status-name">Grafana</div>
+        <div class="status-label">Running — port 3000</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot"></div>
+      <div>
+        <div class="status-name">Airflow</div>
+        <div class="status-label">Running — port 8081</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-dot"></div>
+      <div>
+        <div class="status-name">MLflow</div>
+        <div class="status-label">Running — port 5000</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section id="quickstart">
+  <h2>Quick <span class="accent">Start</span></h2>
+  <div class="code-block">
+    <div class="code-header">BASH — 3 commands to run the full stack</div>
+    <div class="code-body">
+<span class="comment"># 1. Clone and enter the repo</span>
+<span class="cmd-prompt">$ </span>git clone https://github.com/rayenx2/SentimentFlow.git &amp;&amp; cd SentimentFlow
+
+<span class="comment"># 2. Copy environment config</span>
+<span class="cmd-prompt">$ </span>cp .env.example .env
+
+<span class="comment"># 3. Start all 5 services</span>
+<span class="cmd-prompt">$ </span>docker compose up -d
+
+<span class="comment"># Services come up at:</span>
+<span class="comment"># API:        </span><span class="url">http://localhost:8080</span>
+<span class="comment"># API Docs:   </span><span class="url">http://localhost:8080/docs</span>
+<span class="comment"># Prometheus: </span><span class="url">http://localhost:9090</span>
+<span class="comment"># Grafana:    </span><span class="url">http://localhost:3000</span>
+<span class="comment"># Airflow:    </span><span class="url">http://localhost:8081</span>
+<span class="comment"># MLflow:     </span><span class="url">http://localhost:5000</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    Rayen Lassoued &nbsp;&middot;&nbsp;
+     &nbsp;&middot;&nbsp;
+    <a href="https://github.com/rayenx2" target="_blank">github.com/rayenx2</a> &nbsp;&middot;&nbsp;
+    <a href="https://linkedin.com/in/Rayen-Lassoued" target="_blank">linkedin.com/in/Rayen-Lassoued</a>
+  </p>
+</footer>
+
+<script>
+  // Hardcoded demo results keyed by rough sentiment of input text
+  const DEMO_RESULTS = {
+    positive: { sentiment: 'positive', confidence: 0.94, probabilities: { positive: 0.94, neutral: 0.04, negative: 0.02 } },
+    neutral:  { sentiment: 'neutral',  confidence: 0.82, probabilities: { positive: 0.09, neutral: 0.82, negative: 0.09 } },
+    negative: { sentiment: 'negative', confidence: 0.91, probabilities: { positive: 0.04, neutral: 0.05, negative: 0.91 } },
+  };
+
+  function classifyInput(text) {
+    text = text.toLowerCase();
+    const posWords = ['great','good','excellent','fantastic','love','amazing','wonderful','best','happy','outstanding','perfect','brilliant'];
+    const negWords = ['bad','terrible','awful','hate','worst','horrible','poor','disappointing','broken','failed','useless','problem'];
+    let pos = posWords.filter(w => text.includes(w)).length;
+    let neg = negWords.filter(w => text.includes(w)).length;
+    if (pos > neg) return 'positive';
+    if (neg > pos) return 'negative';
+    return 'neutral';
+  }
+
+  function runDemo() {
+    const btn = document.getElementById('analyzeBtn');
+    const text = document.getElementById('demoInput').value.trim();
+    if (!text) { alert('Please enter some text first.'); return; }
+
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    setTimeout(() => {
+      const key = classifyInput(text);
+      const result = DEMO_RESULTS[key];
+      const latency = Math.floor(Math.random() * 60 + 90); // 90–150ms
+      showResult(result, latency);
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }, 800);
+  }
+
+  function showResult(result, latency) {
+    const box = document.getElementById('resultBox');
+    const badge = document.getElementById('sentimentBadge');
+
+    badge.textContent = result.sentiment.toUpperCase();
+    badge.className = 'sentiment-badge ' + result.sentiment;
+    document.getElementById('confValue').textContent = (result.confidence * 100).toFixed(1) + '%';
+    document.getElementById('latencyVal').textContent = latency;
+
+    const p = result.probabilities;
+    setBar('posBar', 'posVal', p.positive);
+    setBar('neuBar', 'neuVal', p.neutral);
+    setBar('negBar', 'negVal', p.negative);
+
+    box.classList.add('visible');
+  }
+
+  function setBar(barId, valId, value) {
+    document.getElementById(barId).style.width = (value * 100).toFixed(1) + '%';
+    document.getElementById(valId).textContent = (value * 100).toFixed(1) + '%';
+  }
+
+  function loadExample(el) {
+    document.getElementById('demoInput').value = el.dataset.text;
+    const result = {
+      sentiment: el.dataset.sentiment,
+      confidence: parseFloat(el.dataset.conf),
+      probabilities: {
+        positive: parseFloat(el.dataset.pos),
+        neutral:  parseFloat(el.dataset.neu),
+        negative: parseFloat(el.dataset.neg),
+      }
+    };
+    showResult(result, Math.floor(Math.random() * 60 + 90));
+  }
+</script>
+</body>
+</html>

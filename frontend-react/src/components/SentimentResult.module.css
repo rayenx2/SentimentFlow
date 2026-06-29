@@ -1,0 +1,118 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-size: 18px;
+  font-weight: 700;
+  border: 2px solid;
+}
+
+.badge.positive { color: var(--positive); background: var(--positive-bg); border-color: var(--positive-border); }
+.badge.neutral  { color: var(--neutral);  background: var(--neutral-bg);  border-color: var(--neutral-border);  }
+.badge.negative { color: var(--negative); background: var(--negative-bg); border-color: var(--negative-border); }
+
+.ringWrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.ring {
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+.ringBg {
+  fill: none;
+  stroke: var(--bg3);
+  stroke-width: 8;
+}
+
+.ringFill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+
+.ringLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringPct { font-size: 20px; font-weight: 700; }
+.ringSub { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; }
+
+.bars { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+.probRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.probLabel { width: 60px; font-size: 12px; font-weight: 500; }
+.probLabel.positive { color: var(--positive); }
+.probLabel.neutral  { color: var(--neutral);  }
+.probLabel.negative { color: var(--negative); }
+
+.track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+
+.positiveFill { background: var(--positive); }
+.neutralFill  { background: var(--neutral);  }
+.negativeFill { background: var(--negative); }
+
+.probVal {
+  width: 36px;
+  text-align: right;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text2);
+}
+
+.analyzedText {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text2);
+  font-style: italic;
+  line-height: 1.6;
+  max-height: 80px;
+  overflow-y: auto;
+}

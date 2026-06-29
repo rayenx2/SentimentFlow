@@ -1,0 +1,17 @@
+# Override: mount host HuggingFace cache to avoid re-downloading ~500MB model,
+# bind-mount dataset dir to skip dataset download,
+# and replace curl healthcheck with Python (curl not in python:3.10-slim).
+services:
+  api:
+    volumes:
+      - ~/.cache/huggingface:/app/models/cache
+      - ./data/datasets/cached:/app/data/datasets/cached:rw
+      - ./results:/app/results
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
